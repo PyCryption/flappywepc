@@ -7,8 +7,8 @@ let context;
 let bgImg;
 
 // Bird
-let birdWidth = 34; //width/height ratio = 408/228 = 17/12
-let birdHeight = 24;
+let birdWidth = 79; //width/height ratio = 408/228 = 17/12
+let birdHeight = 58;
 let birdX = boardWidth / 8;
 let birdY = boardHeight / 2;
 let birdImg;
@@ -27,7 +27,8 @@ let pipeHeight = 512;
 let pipeX = boardWidth;
 let pipeY = 0;
 let lastPipeX = pipeX; // координата X последнего столбца
-let lastDistance = 300; // начальная дистанция между столбцами
+let lastDistance = 200; // начальная дистанция между столбцами
+let lastPipeY = pipeY; // координата Y последнего столбца
 
 let topPipeImg;
 let bottomPipeImg;
@@ -74,8 +75,12 @@ window.onload = function () {
         context.drawImage(birdImg, bird.x, bird.y, bird.width, bird.height);
     }
 
+    coinImg.onload = function () {
+        console.log("WEPC image loaded successfully");
+    }
+
     requestAnimationFrame(update);
-    setInterval(placePipes, 750); //every 1.5 seconds
+    setInterval(placePipes, 1500); //every 1.5 seconds
 
     document.addEventListener("keydown", moveBird);
     document.addEventListener("touchstart", moveBird);
@@ -166,18 +171,22 @@ function placePipes() {
         return;
     }
 
-    let randomPipeY = pipeY - pipeHeight / 4 - Math.random() * (pipeHeight / 2);
-    let openingSpace = board.height / 4;
+    let randomPipeY;
+    do {
+        randomPipeY = getRandomInt(boardHeight / 3, boardHeight - pipeHeight - 50); // Устанавливаем Y координату ниже
+    } while (Math.abs(randomPipeY - lastPipeY) < 100); // Убедимся, что текущий столбец значительно отличается по вертикали от последнего
+
+    let openingSpace = board.height / 5; // уменьшили расстояние между столбцами
 
     let distanceBetweenPipes;
     do {
-        distanceBetweenPipes = getRandomInt(25, 400);
+        distanceBetweenPipes = getRandomInt(150, 200); // уменьшили минимальное и максимальное расстояние между столбцами
     } while (Math.abs(distanceBetweenPipes - lastDistance) < 25);
 
     let topPipe = {
         img: topPipeImg,
         x: lastPipeX + distanceBetweenPipes,
-        y: randomPipeY,
+        y: randomPipeY - pipeHeight,
         width: pipeWidth,
         height: pipeHeight,
         passed: false
@@ -187,7 +196,7 @@ function placePipes() {
     let bottomPipe = {
         img: bottomPipeImg,
         x: lastPipeX + distanceBetweenPipes,
-        y: randomPipeY + pipeHeight + openingSpace,
+        y: randomPipeY + openingSpace,
         width: pipeWidth,
         height: pipeHeight,
         passed: false
@@ -196,16 +205,23 @@ function placePipes() {
 
     lastPipeX = topPipe.x; // обновляем координату X последнего столбца
     lastDistance = distanceBetweenPipes; // обновляем последнюю дистанцию
+    lastPipeY = randomPipeY; // обновляем координату Y последнего столбца
 
     if (coinCounter >= coinInterval) {
         let coin = {
             img: coinImg,
-            x: topPipe.x + pipeWidth / 2,
-            y: randomPipeY + pipeHeight + openingSpace / 2 - 32,
-            width: 64,
-            height: 64
+            x: topPipe.x + pipeWidth / 2 - coinWidth / 2, // корректируем положение монеты
+            y: randomPipeY + openingSpace / 2 - coinWidth / 2,
+            width: coinWidth,
+            height: coinWidth
         };
+        
+        // Убедимся, что координаты монеты находятся в пределах видимой области
+        coin.x = Math.max(0, Math.min(coin.x, boardWidth - coinWidth));
+        coin.y = Math.max(0, Math.min(coin.y, boardHeight - coinWidth));
+
         coinArray.push(coin);
+        console.log("Coin placed at:", coin.x, coin.y);
         coinCounter = 0;
         coinInterval = getRandomInt(5, 10);
     }
@@ -232,6 +248,7 @@ function moveBird(e) {
             coinInterval = getRandomInt(5, 10);
             lastPipeX = pipeX; // сброс координаты X последнего столбца
             lastDistance = 300; // сброс последней дистанции
+            lastPipeY = pipeY; // сброс координаты Y последнего столбца
             gameOver = false;
         }
     }
