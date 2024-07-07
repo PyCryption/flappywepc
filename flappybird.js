@@ -26,10 +26,13 @@ let pipeWidth = 64; //width/height ratio = 384/3072 = 1/8
 let pipeHeight = 512;
 let pipeX = boardWidth;
 let pipeY = 0;
+let lastPipeX = pipeX; // координата X последнего столбца
+let lastDistance = 300; // начальная дистанция между столбцами
 
 let topPipeImg;
 let bottomPipeImg;
 let coinImg;
+let coinWidth = 64; // определяем ширину монеты
 
 let coinArray = [];
 let coinCounter = 0;
@@ -41,6 +44,7 @@ let velocityY = -2; //bird jump speed
 let gravity = 0.1;
 
 let gameOver = false;
+let gameStarted = false;
 let score = 0;
 let coinScore = 0;
 
@@ -71,7 +75,7 @@ window.onload = function () {
     }
 
     requestAnimationFrame(update);
-    setInterval(placePipes, 1500); //every 1.5 seconds
+    setInterval(placePipes, 750); //every 1.5 seconds
 
     document.addEventListener("keydown", moveBird);
     document.addEventListener("touchstart", moveBird);
@@ -80,13 +84,22 @@ window.onload = function () {
 
 function update() {
     requestAnimationFrame(update);
-    if (gameOver) {
-        return;
-    }
     context.clearRect(0, 0, board.width, board.height);
 
     // Draw background
     context.drawImage(bgImg, 0, 0, boardWidth, boardHeight);
+
+    if (!gameStarted) {
+        context.fillStyle = "white";
+        context.font = "60px sans-serif";
+        context.fillText("Tap to start!", boardWidth / 2 - 150, boardHeight / 2);
+        return;
+    }
+
+    if (gameOver) {
+        context.fillText("GAME OVER", 5, 135);
+        return;
+    }
 
     // Bird
     velocityY += gravity;
@@ -149,16 +162,21 @@ function update() {
 }
 
 function placePipes() {
-    if (gameOver) {
+    if (gameOver || !gameStarted) {
         return;
     }
 
     let randomPipeY = pipeY - pipeHeight / 4 - Math.random() * (pipeHeight / 2);
     let openingSpace = board.height / 4;
 
+    let distanceBetweenPipes;
+    do {
+        distanceBetweenPipes = getRandomInt(25, 400);
+    } while (Math.abs(distanceBetweenPipes - lastDistance) < 25);
+
     let topPipe = {
         img: topPipeImg,
-        x: pipeX,
+        x: lastPipeX + distanceBetweenPipes,
         y: randomPipeY,
         width: pipeWidth,
         height: pipeHeight,
@@ -168,7 +186,7 @@ function placePipes() {
 
     let bottomPipe = {
         img: bottomPipeImg,
-        x: pipeX,
+        x: lastPipeX + distanceBetweenPipes,
         y: randomPipeY + pipeHeight + openingSpace,
         width: pipeWidth,
         height: pipeHeight,
@@ -176,10 +194,13 @@ function placePipes() {
     }
     pipeArray.push(bottomPipe);
 
+    lastPipeX = topPipe.x; // обновляем координату X последнего столбца
+    lastDistance = distanceBetweenPipes; // обновляем последнюю дистанцию
+
     if (coinCounter >= coinInterval) {
         let coin = {
             img: coinImg,
-            x: pipeX + pipeWidth / 2,
+            x: topPipe.x + pipeWidth / 2,
             y: randomPipeY + pipeHeight + openingSpace / 2 - 32,
             width: 64,
             height: 64
@@ -193,6 +214,12 @@ function placePipes() {
 function moveBird(e) {
     if (e.type === "keydown" && (e.code == "Space" || e.code == "ArrowUp" || e.code == "KeyX") ||
         e.type === "touchstart") {
+        
+        if (!gameStarted) {
+            gameStarted = true;
+            return;
+        }
+        
         velocityY = -3;
 
         if (gameOver) {
@@ -203,6 +230,8 @@ function moveBird(e) {
             coinScore = 0;
             coinCounter = 0;
             coinInterval = getRandomInt(5, 10);
+            lastPipeX = pipeX; // сброс координаты X последнего столбца
+            lastDistance = 300; // сброс последней дистанции
             gameOver = false;
         }
     }
@@ -227,4 +256,3 @@ function resizeCanvas() {
     bird.x = birdX;
     bird.y = birdY;
 }
-
